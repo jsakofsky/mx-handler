@@ -1,0 +1,38 @@
+---
+- hosts: mx-servers
+  gather_facts: no
+  connection: local
+
+  tasks:
+  - name: lookup talos data
+    command: ./mx-score-lookup.py "{{ inventory_hostname }}"
+    delegate_to: localhost
+    register: talos_score
+
+  - name: collect f5 facts
+    bigip_facts:
+      server:
+      user:
+      password:
+      validate_certs: "no"
+      include: pool
+      filter: "/WSQ-EDU-MED/mx-smtp"
+    delegate_to: localhost
+    register: host_facts
+    run_once: true
+
+  - name: remove host from pool when status is poor
+    bigip_pool_member:
+      server:
+      user:
+      password:
+      validate_certs: "no"
+      state: present
+      session_state: disabled
+      monitor_state: disabled
+      pool: mx-test
+      partition: WSQ-EDU-MED
+      host: "{{ hostvars[inventory_hostname]['node_name'] }}"
+      port: 25
+    when: (talos_score.stdout == "Poor") and (host_facts['ansible_facts']['pool']['/WSQ-EDU-MED/mx-smtp']['active_member_count'] > 1)
+    delegate_to: localhost

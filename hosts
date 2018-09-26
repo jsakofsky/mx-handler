@@ -1,0 +1,7 @@
+[mx-servers]
+216.165.32.241 node_name=mx1
+216.165.32.242 node_name=mx2
+216.165.32.245 node_name=mx3
+216.165.32.243 node_name=mx4
+216.165.32.244 node_name=mx5
+216.165.32.246 node_name=mx6
