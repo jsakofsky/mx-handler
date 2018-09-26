@@ -11,8 +11,8 @@
 
   - name: collect f5 facts
     bigip_facts:
-      server:
-      user:
+      server: lbswa-wsq-edu-prod.net.nyu.edu
+      user: admin
       password:
       validate_certs: "no"
       include: pool
@@ -22,9 +22,10 @@
     run_once: true
 
   - name: remove host from pool when status is poor
+    when: (talos_score.stdout == "Poor") and (host_facts['ansible_facts']['pool']['/WSQ-EDU-MED/mx-smtp']['active_member_count'] > 1)
     bigip_pool_member:
-      server:
-      user:
+      server: lbswa-wsq-edu-prod.net.nyu.edu
+      user: admin
       password:
       validate_certs: "no"
       state: present
@@ -34,5 +35,15 @@
       partition: WSQ-EDU-MED
       host: "{{ hostvars[inventory_hostname]['node_name'] }}"
       port: 25
-    when: (talos_score.stdout == "Poor") and (host_facts['ansible_facts']['pool']['/WSQ-EDU-MED/mx-smtp']['active_member_count'] > 1)
+    delegate_to: localhost
+
+  - name: send email to notify of actions
+    when: talos_score.stdout == "Poor"
+    mail:
+      host: smtp.nyu.edu
+      port: 25
+      from: mx-handler@netdev.noc.nyu.edu
+      to: mailadmin@nyu.edu
+      subject: mx-handler report
+      body: "Host {{ node_name }} : {{ inventory_hostname }} has been disabled"
     delegate_to: localhost
